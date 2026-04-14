@@ -12,9 +12,18 @@ import scanRouter from './routes/scan.js'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 5355
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'] }))
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5353',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+    ],
+  })
+)
 app.use(express.json())
 
 app.use('/api/assets', assetsRouter)

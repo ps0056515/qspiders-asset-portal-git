@@ -1,3 +1,25 @@
+# QSpiders Asset Portal
+
+React (Vite) frontend with an Express API and PostgreSQL.
+
+## Development
+
+1. Copy `.env.example` to `.env` and set `DATABASE_URL`, Supabase keys, etc.
+2. `npm install` then `npm run dev`
+
+| Service | URL |
+|--------|-----|
+| **App (Vite)** | http://localhost:5353 |
+| **API (Express)** | http://localhost:5355 (`PORT` in `.env`, default 5355) |
+
+`npm run dev` starts both. The Vite dev server proxies `/api` to the API. CORS allows the app origin `http://localhost:5353`.
+
+- `npm run dev:client` — Vite only  
+- `npm run dev:server` — API only  
+- `npm run preview` — production build preview on **5353** (start API on **5355** separately for `/api`)
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
