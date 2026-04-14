@@ -10,7 +10,7 @@ React (Vite) frontend with an Express API and PostgreSQL.
 | Service | URL |
 |--------|-----|
 | **App (Vite)** | http://localhost:5353 |
-| **API (Express)** | http://localhost:5355 (`PORT` in `.env`, default 5355) |
+| **API (Express)** | http://localhost:5355 (`API_PORT` in `.env`, default 5355 — do not rely on generic `PORT`, which is often `3001` from other tools) |
 
 `npm run dev` starts both. The Vite dev server proxies `/api` to the API. CORS allows the app origin `http://localhost:5353`.
 

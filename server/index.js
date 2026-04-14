@@ -12,7 +12,8 @@ import scanRouter from './routes/scan.js'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 5355
+// Use API_PORT only — a generic PORT=3001 in .env (or tooling) must not override the API bind port.
+const PORT = Number(process.env.API_PORT || 5355)
 
 app.use(
   cors({
