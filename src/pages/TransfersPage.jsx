@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 import { CENTERS } from '../lib/mockData'
@@ -23,12 +23,13 @@ const STATUS_ICONS = {
   'Rejected': X,
 }
 
-function InitiateTransferModal({ onClose }) {
+function InitiateTransferModal({ onClose, initialAssetId }) {
   const { user } = useAuth()
   const { assets, initiateTransfer } = useData()
+  const preselected = initialAssetId ? assets.find(a => a.id === initialAssetId) : null
   const [form, setForm] = useState({
-    asset_id: '',
-    from_center: user?.center_id || '',
+    asset_id: preselected?.id || '',
+    from_center: preselected?.center_id || user?.center_id || '',
     to_center: '',
     quantity: 1,
     reason: '',
@@ -150,13 +151,26 @@ function InitiateTransferModal({ onClose }) {
 
 export default function TransfersPage() {
   const { user } = useAuth()
-  const { transfers, approveTransfer, completeTransfer } = useData()
-  const [searchParams] = useSearchParams()
+  const { transfers, assets, approveTransfer, completeTransfer } = useData()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [showModal, setShowModal] = useState(false)
+  const [prefillAssetId, setPrefillAssetId] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
   const canApprove = user?.role === 'super_admin' || user?.role === 'ops_admin'
   const canInitiate = user?.role !== 'auditor'
+
+  useEffect(() => {
+    const assetId = searchParams.get('asset')
+    if (!assetId || !canInitiate) return
+    const asset = assets.find(a => a.id === assetId)
+    if (!asset) return
+    setPrefillAssetId(assetId)
+    setShowModal(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('asset')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, assets, canInitiate])
 
   const visible = useMemo(() => {
     let list = transfers
@@ -185,7 +199,7 @@ export default function TransfersPage() {
         </div>
         {canInitiate && (
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => { setPrefillAssetId(''); setShowModal(true) }}
             className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition shadow-sm"
           >
             <Plus size={15} />
@@ -265,7 +279,12 @@ export default function TransfersPage() {
         })}
       </div>
 
-      {showModal && <InitiateTransferModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <InitiateTransferModal
+          initialAssetId={prefillAssetId}
+          onClose={() => { setShowModal(false); setPrefillAssetId('') }}
+        />
+      )}
     </div>
   )
 }

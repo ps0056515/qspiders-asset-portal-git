@@ -22,7 +22,8 @@ function StartMaintenanceModal({ onClose }) {
       const centerMatch = user?.role === 'center_head' || user?.role === 'center_staff'
         ? a.center_id === user.center_id
         : !form.center_id || a.center_id === form.center_id
-      return centerMatch && ['Active', 'Needs Repair'].includes(a.status)
+      // Eligible: Active assets (includes condition "Needs Repair"; that is not a status)
+      return centerMatch && a.status === 'Active'
     })
   }, [assets, user, form.center_id])
 
