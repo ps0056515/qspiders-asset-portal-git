@@ -1,13 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { DataProvider } from './contexts/DataContext'
+import { CenterFilterProvider } from './contexts/CenterFilterContext'
+import { ToolbarActionsProvider } from './contexts/ToolbarActionsContext'
 
 import AppLayout from './components/Layout/AppLayout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import AssetRegisterPage from './pages/AssetRegisterPage'
-import AddEditAssetPage from './pages/AddEditAssetPage'
 import AssetDetailPage from './pages/AssetDetailPage'
 import TransfersPage from './pages/TransfersPage'
 import MaintenancePage from './pages/MaintenancePage'
@@ -16,6 +17,11 @@ import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
 import ScanPage from './pages/ScanPage'
 
+function EditAssetRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/assets?mode=edit&id=${encodeURIComponent(id || '')}`} replace />
+}
+
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth()
 
@@ -23,7 +29,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-600 rounded-full animate-spin" />
           <p className="text-sm text-slate-500">Loading…</p>
         </div>
       </div>
@@ -59,16 +65,8 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="/assets" element={<AssetRegisterPage />} />
-        <Route path="/assets/add" element={
-          <ProtectedRoute allowedRoles={['super_admin', 'ops_admin', 'center_head', 'center_staff']}>
-            <AddEditAssetPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/assets/edit/:id" element={
-          <ProtectedRoute allowedRoles={['super_admin', 'ops_admin', 'center_head', 'center_staff']}>
-            <AddEditAssetPage />
-          </ProtectedRoute>
-        } />
+        <Route path="/assets/add" element={<Navigate to="/assets?mode=add" replace />} />
+        <Route path="/assets/edit/:id" element={<EditAssetRedirect />} />
         <Route path="/assets/:id" element={<AssetDetailPage />} />
         <Route path="/transfers" element={<TransfersPage />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
@@ -99,16 +97,20 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <DataProvider>
-          <AppRoutes />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: { borderRadius: '10px', fontSize: '14px', fontWeight: '500' },
-              success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-            }}
-          />
+          <CenterFilterProvider>
+            <ToolbarActionsProvider>
+              <AppRoutes />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  style: { borderRadius: '10px', fontSize: '14px', fontWeight: '500' },
+                  success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                  error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+                }}
+              />
+            </ToolbarActionsProvider>
+          </CenterFilterProvider>
         </DataProvider>
       </AuthProvider>
     </BrowserRouter>

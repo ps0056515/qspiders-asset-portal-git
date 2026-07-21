@@ -44,7 +44,7 @@ export default function LoginPage() {
         {/* Branding panel */}
         <div className="text-white space-y-6 hidden lg:block">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg">
               <Shield size={30} className="text-white" />
             </div>
             <div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
               { label: 'Accuracy', value: '92%+' },
             ].map(stat => (
               <div key={stat.label} className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <p className="text-2xl font-bold text-orange-400">{stat.value}</p>
+                <p className="text-2xl font-bold text-violet-400">{stat.value}</p>
                 <p className="text-sm text-slate-400 mt-1">{stat.label}</p>
               </div>
             ))}
@@ -73,7 +73,7 @@ export default function LoginPage() {
         {/* Login form */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
               <Shield size={22} className="text-white" />
             </div>
             <div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="you@qspiders.com"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition"
               />
             </div>
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-10"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition pr-10"
                 />
                 <button
                   type="button"
@@ -127,7 +127,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-4 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -148,13 +148,13 @@ export default function LoginPage() {
                 <button
                   key={u.id}
                   onClick={() => quickLogin(u)}
-                  className="flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-orange-50 rounded-lg text-sm border border-slate-100 hover:border-orange-200 transition group"
+                  className="flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-violet-50 rounded-lg text-sm border border-slate-100 hover:border-violet-200 transition group"
                 >
                   <div className="text-left">
-                    <span className="font-medium text-slate-700 group-hover:text-orange-600">{u.name}</span>
+                    <span className="font-medium text-slate-700 group-hover:text-violet-700">{u.name}</span>
                     <span className="text-slate-400 ml-2 text-xs">{u.email}</span>
                   </div>
-                  <span className="text-xs bg-slate-200 group-hover:bg-orange-100 text-slate-600 group-hover:text-orange-600 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs bg-slate-200 group-hover:bg-violet-100 text-slate-600 group-hover:text-violet-700 px-2 py-0.5 rounded-full font-medium">
                     {u.role.replace('_', ' ')}
                   </span>
                 </button>

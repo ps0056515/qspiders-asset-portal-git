@@ -3,11 +3,8 @@ import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import {
   ArrowLeft, Edit, QrCode, ArrowLeftRight, Trash2,
-  Package, MapPin, User, DollarSign, Calendar, Hash, Tag, Wrench
+  Package, MapPin, User, DollarSign, Calendar, Hash, Tag
 } from 'lucide-react'
-import { useState } from 'react'
-import QRModal from '../components/Assets/QRModal'
-import DecommissionModal from '../components/Assets/DecommissionModal'
 
 const STATUS_COLORS = {
   'Active': 'bg-green-100 text-green-700 border-green-200',
@@ -36,8 +33,6 @@ export default function AssetDetailPage() {
   const { assets, auditLogs } = useData()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [showQR, setShowQR] = useState(false)
-  const [showDecomm, setShowDecomm] = useState(false)
 
   const asset = assets.find(a => a.id === id)
 
@@ -46,7 +41,7 @@ export default function AssetDetailPage() {
       <div className="text-center py-24">
         <Package size={48} className="mx-auto text-slate-200 mb-4" />
         <p className="text-slate-500 font-medium">Asset not found</p>
-        <button onClick={() => navigate('/assets')} className="mt-4 text-orange-500 hover:underline text-sm">← Back to register</button>
+        <button onClick={() => navigate('/assets')} className="mt-4 text-violet-600 hover:underline text-sm">← Back to register</button>
       </div>
     )
   }
@@ -58,9 +53,8 @@ export default function AssetDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-lg transition">
+        <button onClick={() => navigate('/assets')} className="p-2 hover:bg-slate-100 rounded-lg transition">
           <ArrowLeft size={18} className="text-slate-500" />
         </button>
         <div className="flex-1">
@@ -74,17 +68,17 @@ export default function AssetDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowQR(true)}
-            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition"
+            onClick={() => navigate(`/assets?id=${encodeURIComponent(id)}`)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition"
           >
             <QrCode size={15} />
-            QR
+            Open in register
           </button>
           {canEdit && (
             <>
               <button
-                onClick={() => navigate(`/assets/edit/${id}`)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-600 hover:bg-blue-100 transition"
+                onClick={() => navigate(`/assets?mode=edit&id=${encodeURIComponent(id)}`)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg text-sm text-violet-700 hover:bg-violet-100 transition"
               >
                 <Edit size={15} />
                 Edit
@@ -100,7 +94,7 @@ export default function AssetDetailPage() {
               )}
               {!['Decommissioned', 'Pending Decommission'].includes(asset.status) && (
                 <button
-                  onClick={() => setShowDecomm(true)}
+                  onClick={() => navigate(`/assets?id=${encodeURIComponent(id)}`)}
                   className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 hover:bg-red-100 transition"
                 >
                   <Trash2 size={15} />
@@ -113,7 +107,6 @@ export default function AssetDetailPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main info */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
             <h3 className="font-semibold text-slate-700 text-sm mb-3">Asset Details</h3>
@@ -153,9 +146,7 @@ export default function AssetDetailPage() {
           )}
         </div>
 
-        {/* Side panel */}
         <div className="space-y-4">
-          {/* Quick stats */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-3">
             <h3 className="font-semibold text-slate-700 text-sm">Quick Info</h3>
             <div className="flex items-center justify-between">
@@ -179,7 +170,6 @@ export default function AssetDetailPage() {
             </div>
           </div>
 
-          {/* Change history */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
             <h3 className="font-semibold text-slate-700 text-sm mb-3">Change History</h3>
             {assetLogs.length === 0 ? (
@@ -188,7 +178,7 @@ export default function AssetDetailPage() {
               <div className="space-y-3">
                 {assetLogs.map(log => (
                   <div key={log.id} className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 flex-shrink-0" />
                     <div>
                       <p className="text-xs font-medium text-slate-700">{log.action}</p>
                       <p className="text-xs text-slate-400">{log.user} · {new Date(log.timestamp).toLocaleDateString('en-IN')}</p>
@@ -201,9 +191,6 @@ export default function AssetDetailPage() {
           </div>
         </div>
       </div>
-
-      {showQR && <QRModal asset={asset} onClose={() => setShowQR(false)} />}
-      {showDecomm && <DecommissionModal asset={asset} onClose={() => setShowDecomm(false)} />}
     </div>
   )
 }

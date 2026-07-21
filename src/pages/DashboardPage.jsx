@@ -26,8 +26,8 @@ function StatCard({ icon: Icon, label, value, sub, color, onClick }) {
           <p className={`text-3xl font-bold mt-1 ${color || 'text-slate-800'}`}>{value}</p>
           {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
         </div>
-        <div className={`p-2.5 rounded-lg ${color ? color.replace('text-', 'bg-').replace('-600', '-100').replace('-500', '-100') : 'bg-orange-100'}`}>
-          <Icon size={22} className={color || 'text-orange-500'} />
+        <div className={`p-2.5 rounded-lg ${color ? color.replace('text-', 'bg-').replace('-600', '-100').replace('-500', '-100') : 'bg-violet-100'}`}>
+          <Icon size={22} className={color || 'text-violet-600'} />
         </div>
       </div>
     </button>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {auditLogs.slice(0, 8).map(log => (
               <div key={log.id} className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-violet-400 mt-1.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-700">
                     <span className="font-medium">{log.action}</span>
