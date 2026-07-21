@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
-  ChevronRight, ChevronDown, Building2, Landmark, MapPin, Package
+  ChevronRight, ChevronDown, Building2, Landmark, MapPin, Package,
+  Eye, Pencil, QrCode, ArrowLeftRight, Copy, MoreHorizontal, Expand, Trash2
 } from 'lucide-react'
 import { CENTERS } from '../../lib/mockData'
 
@@ -19,6 +22,9 @@ const COND_COLORS = {
   'Needs Repair': 'text-red-600',
   'Damaged': 'text-red-700',
 }
+
+const STICKY = 'sticky left-0 z-[5] bg-inherit'
+const STICKY_HEAD = 'sticky left-0 z-[15] bg-violet-50'
 
 export function buildLocationTree(assets) {
   const cities = {}
@@ -85,9 +91,12 @@ function summarizeStatuses(assets) {
   return 'Mixed'
 }
 
-function Pill({ children, className = '' }) {
+function Pill({ children, title }) {
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums bg-violet-100 text-violet-700 ${className}`}>
+    <span
+      title={title}
+      className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums bg-violet-100 text-violet-700"
+    >
       {children}
     </span>
   )
@@ -108,17 +117,33 @@ function TreeToggle({ open }) {
     : <ChevronRight size={14} className="text-slate-400 shrink-0" />
 }
 
+function copyId(id, e) {
+  e?.stopPropagation()
+  navigator.clipboard?.writeText(id).then(
+    () => toast.success('ID copied'),
+    () => toast.error('Could not copy')
+  )
+}
+
 /**
- * Unified City → Center → Location → Asset tree-table (single view).
+ * Unified City → Center → Location → Asset tree-table with sticky tree column,
+ * hover row actions, and copy ID.
  */
 export default function AssetTreeTable({
   assets,
   selectedAssetId,
   onSelectAsset,
+  onEditAsset,
+  onQrAsset,
+  onDecommissionAsset,
+  canEdit = true,
+  canDelete = true,
   expandSignal = 0,
 }) {
+  const navigate = useNavigate()
   const tree = useMemo(() => buildLocationTree(assets || []), [assets])
   const [expanded, setExpanded] = useState({})
+  const [menuAssetId, setMenuAssetId] = useState(null)
 
   useEffect(() => {
     if (tree.length === 0) return
@@ -137,6 +162,14 @@ export default function AssetTreeTable({
 
   const isOpen = (key) => Boolean(expanded[key])
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
+
+  const expandSubtree = (keys) => {
+    setExpanded(prev => {
+      const next = { ...prev }
+      for (const k of keys) next[k] = true
+      return next
+    })
+  }
 
   const expandAll = () => {
     const next = {}
@@ -159,6 +192,12 @@ export default function AssetTreeTable({
 
   const collapseAll = () => setExpanded({})
 
+  useEffect(() => {
+    const close = () => setMenuAssetId(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [])
+
   if (tree.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm py-16 text-center">
@@ -169,7 +208,11 @@ export default function AssetTreeTable({
     )
   }
 
-  const colCount = 6
+  const ctx = {
+    isOpen, toggle, expandSubtree,
+    selectedAssetId, onSelectAsset, onEditAsset, onQrAsset, onDecommissionAsset,
+    canEdit, canDelete, navigate, menuAssetId, setMenuAssetId,
+  }
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-0">
@@ -186,44 +229,31 @@ export default function AssetTreeTable({
       </div>
 
       <div className="overflow-auto scrollbar-thin max-h-[calc(100vh-16rem)]">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10">
+        <table className="w-full text-sm border-collapse min-w-[960px]">
+          <thead className="sticky top-0 z-20">
             <tr className="bg-violet-50 border-b border-violet-100">
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider min-w-[280px]">
+              <th className={`px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider min-w-[300px] ${STICKY_HEAD} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}>
                 Location / Asset
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">
-                Category
-              </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">
-                Condition
-              </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">
-                Status
-              </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">
-                ID
-              </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">
-                Custodian
-              </th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">Category</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">Condition</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">ID</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">Custodian</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap">Last verified</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-violet-800 uppercase tracking-wider whitespace-nowrap w-36">Actions</th>
             </tr>
           </thead>
           <tbody>
             {tree.map(city => {
               const cityKey = `city:${city.name}`
-              const cityOpen = isOpen(cityKey)
               return (
                 <CityFragment
                   key={cityKey}
                   city={city}
                   cityKey={cityKey}
-                  cityOpen={cityOpen}
-                  toggle={toggle}
-                  isOpen={isOpen}
-                  selectedAssetId={selectedAssetId}
-                  onSelectAsset={onSelectAsset}
-                  colCount={colCount}
+                  cityOpen={isOpen(cityKey)}
+                  ctx={ctx}
                 />
               )
             })}
@@ -234,41 +264,65 @@ export default function AssetTreeTable({
   )
 }
 
-function CityFragment({ city, cityKey, cityOpen, toggle, isOpen, selectedAssetId, onSelectAsset }) {
+/** ID, Custodian, Last verified, Actions — after Status on group rows */
+function TrailingEmptyCells() {
+  return (
+    <>
+      <td />
+      <td />
+      <td />
+      <td />
+    </>
+  )
+}
+
+function CityFragment({ city, cityKey, cityOpen, ctx }) {
+  const { toggle, expandSubtree, isOpen } = ctx
   return (
     <>
       <tr
-        className="border-b border-slate-50 hover:bg-violet-50/40 cursor-pointer"
+        className="border-b border-slate-50 hover:bg-violet-50/40 cursor-pointer group bg-white"
         onClick={() => toggle(cityKey)}
       >
-        <td className="px-3 py-2">
+        <td className={`px-3 py-1.5 ${STICKY} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]`}>
           <div className="flex items-center gap-2">
             <TreeToggle open={cityOpen} />
             <Building2 size={15} className="text-violet-600 shrink-0" />
-            <span className="font-semibold text-slate-800">{city.name}</span>
-            <Pill>C {city.centerCount}</Pill>
-            <Pill>A {city.count}</Pill>
+            <span className="font-semibold text-slate-800 text-[13px]">{city.name}</span>
+            <Pill title={`${city.centerCount} centers`}>C {city.centerCount}</Pill>
+            <Pill title={`${city.count} assets`}>A {city.count}</Pill>
+            <button
+              type="button"
+              title="Expand all under city"
+              onClick={(e) => {
+                e.stopPropagation()
+                const keys = [cityKey]
+                for (const c of city.centers) {
+                  keys.push(`center:${c.id}`)
+                  for (const loc of c.locations) keys.push(`loc:${c.id}::${loc.name}`)
+                }
+                expandSubtree(keys)
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded text-violet-600 hover:bg-violet-100 transition"
+            >
+              <Expand size={13} />
+            </button>
           </div>
         </td>
         <td />
         <td />
-        <td className="px-3 py-2"><StatusPill status={city.statusSummary} /></td>
-        <td />
-        <td />
+        <td className="px-3 py-1.5"><StatusPill status={city.statusSummary} /></td>
+        <TrailingEmptyCells />
       </tr>
       {cityOpen && city.centers.map(center => {
         const centerKey = `center:${center.id}`
-        const centerOpen = isOpen(centerKey)
         return (
           <CenterFragment
             key={centerKey}
             center={center}
             centerKey={centerKey}
-            centerOpen={centerOpen}
-            toggle={toggle}
-            isOpen={isOpen}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={onSelectAsset}
+            centerOpen={isOpen(centerKey)}
+            ctx={ctx}
           />
         )
       })}
@@ -276,41 +330,51 @@ function CityFragment({ city, cityKey, cityOpen, toggle, isOpen, selectedAssetId
   )
 }
 
-function CenterFragment({ center, centerKey, centerOpen, toggle, isOpen, selectedAssetId, onSelectAsset }) {
+function CenterFragment({ center, centerKey, centerOpen, ctx }) {
+  const { toggle, expandSubtree, isOpen } = ctx
   return (
     <>
       <tr
-        className="border-b border-slate-50 hover:bg-violet-50/30 cursor-pointer"
+        className="border-b border-slate-50 hover:bg-violet-50/30 cursor-pointer group bg-white"
         onClick={() => toggle(centerKey)}
       >
-        <td className="px-3 py-2">
+        <td className={`px-3 py-1.5 ${STICKY} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]`}>
           <div className="flex items-center gap-2 pl-5">
             <TreeToggle open={centerOpen} />
             <Landmark size={14} className="text-slate-500 shrink-0" />
-            <span className="font-medium text-slate-700">{center.name}</span>
+            <span className="font-medium text-slate-700 text-[13px]">{center.name}</span>
             <span className="text-[11px] text-slate-400 font-mono">{center.id}</span>
-            <Pill>L {center.locationCount}</Pill>
-            <Pill>A {center.count}</Pill>
+            <Pill title={`${center.locationCount} locations`}>L {center.locationCount}</Pill>
+            <Pill title={`${center.count} assets`}>A {center.count}</Pill>
+            <button
+              type="button"
+              title="Expand all under center"
+              onClick={(e) => {
+                e.stopPropagation()
+                const keys = [centerKey]
+                for (const loc of center.locations) keys.push(`loc:${center.id}::${loc.name}`)
+                expandSubtree(keys)
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded text-violet-600 hover:bg-violet-100 transition"
+            >
+              <Expand size={13} />
+            </button>
           </div>
         </td>
         <td />
         <td />
-        <td className="px-3 py-2"><StatusPill status={center.statusSummary} /></td>
-        <td />
-        <td />
+        <td className="px-3 py-1.5"><StatusPill status={center.statusSummary} /></td>
+        <TrailingEmptyCells />
       </tr>
       {centerOpen && center.locations.map(loc => {
         const locKey = `loc:${center.id}::${loc.name}`
-        const locOpen = isOpen(locKey)
         return (
           <LocationFragment
             key={locKey}
             loc={loc}
             locKey={locKey}
-            locOpen={locOpen}
-            toggle={toggle}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={onSelectAsset}
+            locOpen={isOpen(locKey)}
+            ctx={ctx}
           />
         )
       })}
@@ -318,68 +382,169 @@ function CenterFragment({ center, centerKey, centerOpen, toggle, isOpen, selecte
   )
 }
 
-function LocationFragment({ loc, locKey, locOpen, toggle, selectedAssetId, onSelectAsset }) {
+function LocationFragment({ loc, locKey, locOpen, ctx }) {
+  const { toggle } = ctx
   return (
     <>
       <tr
-        className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
+        className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer bg-white"
         onClick={() => toggle(locKey)}
       >
-        <td className="px-3 py-2">
+        <td className={`px-3 py-1.5 ${STICKY} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]`}>
           <div className="flex items-center gap-2 pl-10">
             <TreeToggle open={locOpen} />
             <MapPin size={13} className="text-slate-400 shrink-0" />
-            <span className="text-slate-600 truncate">{loc.name}</span>
-            <Pill>A {loc.count}</Pill>
+            <span className="text-slate-600 truncate text-[13px]">{loc.name}</span>
+            <Pill title={`${loc.count} assets`}>A {loc.count}</Pill>
           </div>
         </td>
         <td />
         <td />
-        <td className="px-3 py-2"><StatusPill status={loc.statusSummary} /></td>
-        <td />
-        <td />
+        <td className="px-3 py-1.5"><StatusPill status={loc.statusSummary} /></td>
+        <TrailingEmptyCells />
       </tr>
-      {locOpen && loc.assets.map(asset => {
-        const selected = selectedAssetId === asset.id
-        return (
-          <tr
-            key={asset.id}
-            onClick={() => onSelectAsset(asset)}
-            className={`border-b border-slate-50 cursor-pointer transition-colors ${
-              selected ? 'bg-violet-100/70' : 'hover:bg-violet-50/50'
-            }`}
-          >
-            <td className="px-3 py-2">
-              <div className="flex items-center gap-2 pl-16">
-                <Package size={13} className="text-violet-400 shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-800 truncate">{asset.asset_name}</p>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {[asset.make_brand, asset.model_no].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-              </div>
-            </td>
-            <td className="px-3 py-2 text-slate-600 whitespace-nowrap text-xs">
-              {asset.category?.split('&')[0]?.trim()}
-            </td>
-            <td className="px-3 py-2">
-              <span className={`text-xs font-medium ${COND_COLORS[asset.condition] || 'text-slate-600'}`}>
-                {asset.condition}
-              </span>
-            </td>
-            <td className="px-3 py-2">
-              <StatusPill status={asset.status} />
-            </td>
-            <td className="px-3 py-2 font-mono text-xs text-slate-500 whitespace-nowrap">
-              {asset.id}
-            </td>
-            <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
-              {asset.custodian}
-            </td>
-          </tr>
-        )
-      })}
+      {locOpen && loc.assets.map(asset => (
+        <AssetRow key={asset.id} asset={asset} ctx={ctx} />
+      ))}
     </>
+  )
+}
+
+function AssetRow({ asset, ctx }) {
+  const {
+    selectedAssetId, onSelectAsset, onEditAsset, onQrAsset, onDecommissionAsset,
+    canEdit, canDelete, navigate, menuAssetId, setMenuAssetId,
+  } = ctx
+  const selected = selectedAssetId === asset.id
+  const menuOpen = menuAssetId === asset.id
+
+  return (
+    <tr
+      onClick={() => onSelectAsset(asset, 'view')}
+      className={`border-b border-slate-50 cursor-pointer transition-colors group ${
+        selected ? 'bg-violet-100/70' : 'bg-white hover:bg-violet-50/50'
+      }`}
+    >
+      <td className={`px-3 py-1.5 ${STICKY} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] ${selected ? 'bg-violet-100/70' : 'bg-inherit group-hover:bg-violet-50/50'}`}>
+        <div className="flex items-center gap-2 pl-16 min-w-0">
+          <Package size={13} className="text-violet-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium text-slate-800 truncate text-[13px] leading-tight">{asset.asset_name}</p>
+            <p className="text-[11px] text-slate-400 truncate leading-tight">
+              {[asset.make_brand, asset.model_no].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-1.5 text-slate-600 whitespace-nowrap text-xs">
+        {asset.category?.split('&')[0]?.trim()}
+      </td>
+      <td className="px-3 py-1.5">
+        <span className={`text-xs font-medium ${COND_COLORS[asset.condition] || 'text-slate-600'}`}>
+          {asset.condition}
+        </span>
+      </td>
+      <td className="px-3 py-1.5">
+        <StatusPill status={asset.status} />
+      </td>
+      <td className="px-3 py-1.5 whitespace-nowrap">
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-xs text-slate-500">{asset.id}</span>
+          <button
+            type="button"
+            title="Copy ID"
+            onClick={(e) => copyId(asset.id, e)}
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-violet-600 hover:bg-violet-100 transition"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+      </td>
+      <td className="px-3 py-1.5 text-xs text-slate-600 whitespace-nowrap">
+        {asset.custodian}
+      </td>
+      <td className="px-3 py-1.5 text-xs text-slate-500 whitespace-nowrap">
+        {asset.last_verified || '—'}
+      </td>
+      <td className="px-2 py-1.5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition">
+          <button
+            type="button"
+            title="View"
+            onClick={() => onSelectAsset(asset, 'view')}
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+          >
+            <Eye size={13} />
+          </button>
+          {canEdit && asset.status !== 'Decommissioned' && (
+            <button
+              type="button"
+              title="Edit"
+              onClick={() => onEditAsset?.(asset)}
+              className="p-1.5 rounded-lg text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            title="QR code"
+            onClick={() => onQrAsset?.(asset)}
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+          >
+            <QrCode size={13} />
+          </button>
+          {canEdit && asset.status === 'Active' && (
+            <button
+              type="button"
+              title="Transfer"
+              onClick={() => navigate(`/transfers?asset=${encodeURIComponent(asset.id)}`)}
+              className="p-1.5 rounded-lg text-slate-500 hover:bg-green-50 hover:text-green-700"
+            >
+              <ArrowLeftRight size={13} />
+            </button>
+          )}
+          <div className="relative">
+            <button
+              type="button"
+              title="More"
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuAssetId(menuOpen ? null : asset.id)
+              }}
+              className="p-1.5 rounded-lg text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+            >
+              <MoreHorizontal size={13} />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-8 z-30 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-violet-50 flex items-center gap-2"
+                  onClick={(e) => { copyId(asset.id, e); setMenuAssetId(null) }}
+                >
+                  <Copy size={12} /> Copy asset ID
+                </button>
+                {canDelete && !['Decommissioned', 'Pending Decommission'].includes(asset.status) && (
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    onClick={() => {
+                      onDecommissionAsset?.(asset)
+                      setMenuAssetId(null)
+                    }}
+                  >
+                    <Trash2 size={12} /> Decommission
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
   )
 }

@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToolbarActions } from '../../contexts/ToolbarActionsContext'
 import {
-  Download, Plus, Search, Expand, Filter, QrCode, MoreVertical, Tag
+  Download, Plus, Search, Expand, Filter, QrCode, MoreVertical, Tag,
+  ArrowLeftRight, Wrench
 } from 'lucide-react'
 
 /** Paths that belong under the Assets module (expanded pill bar) */
@@ -55,7 +56,6 @@ export default function SectionPillBar() {
         { id: 'search', title: 'Search', icon: Search, onClick: () => run('focusSearch') },
         { id: 'filter', title: 'Filters', icon: Filter, onClick: () => run('focusFilters') },
         { id: 'export', title: 'Export CSV', icon: Download, onClick: () => run('export') },
-        { id: 'add', title: 'Add asset', icon: Plus, onClick: () => run('add'), hidden: !canAdd, accent: true },
         { id: 'qr', title: 'QR for selected', icon: QrCode, onClick: () => run('qr') },
         { id: 'expand', title: 'Expand all', icon: Expand, onClick: () => run('expandAll') },
       ]
@@ -78,6 +78,14 @@ export default function SectionPillBar() {
       ]
     }
 
+    const creates = onRegister && canAdd
+      ? [
+          { id: 'add-asset', label: '+ Asset', onClick: () => run('add'), accent: true },
+          { id: 'add-transfer', label: '+ Transfer', icon: ArrowLeftRight, onClick: () => navigate('/transfers?mode=add') },
+          { id: 'add-maint', label: '+ Maintenance', icon: Wrench, onClick: () => navigate('/maintenance?mode=add') },
+        ]
+      : []
+
     return {
       pill: 'Assets',
       tabs: [
@@ -88,6 +96,7 @@ export default function SectionPillBar() {
         { id: 'scan', label: 'AI Scan', active: onScan, onClick: () => navigate('/scan'), hidden: !canScan },
       ],
       icons,
+      creates,
     }
   }, [inAssetsModule, p, navigate, run, canAdd, canApprovals, canScan])
 
@@ -95,6 +104,7 @@ export default function SectionPillBar() {
 
   const tabs = section.tabs.filter(t => !t.hidden)
   const icons = section.icons.filter(i => !i.hidden)
+  const creates = section.creates || []
 
   return (
     <div className="bg-[var(--color-nav)] px-4 lg:px-6 pb-3 -mt-px">
@@ -138,6 +148,29 @@ export default function SectionPillBar() {
               <Icon size={16} strokeWidth={1.75} />
             </button>
           ))}
+
+          {creates.length > 0 && (
+            <>
+              <div className="w-px h-6 bg-slate-200 mx-1 shrink-0" />
+              <div className="flex items-center gap-1 shrink-0">
+                {creates.map(({ id, label, onClick, accent, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={onClick}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                      accent
+                        ? 'bg-violet-600 text-white hover:bg-violet-700'
+                        : 'text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200'
+                    }`}
+                  >
+                    {Icon ? <Icon size={12} /> : <Plus size={12} />}
+                    {label.replace(/^\+\s*/, '')}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <button

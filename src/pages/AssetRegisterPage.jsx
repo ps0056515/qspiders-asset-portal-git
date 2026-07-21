@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 import { useCenterFilter } from '../contexts/CenterFilterContext'
 import {
-  Search, Download, Plus, X, Package
+  Search, X, Package
 } from 'lucide-react'
 import { CATEGORIES, CONDITIONS, STATUSES } from '../lib/mockData'
 import AssetTreeTable from '../components/Assets/AssetTreeTable'
@@ -27,6 +27,8 @@ export default function AssetRegisterPage() {
   const filtersRef = useRef(null)
 
   const canAdd = user?.role !== 'auditor'
+  const canEdit = user?.role !== 'auditor'
+  const canDelete = ['super_admin', 'ops_admin', 'center_head'].includes(user?.role)
 
   // Deep links: ?id=… / ?mode=add / ?mode=edit&id=…
   useEffect(() => {
@@ -113,15 +115,17 @@ export default function AssetRegisterPage() {
     expandAll: () => setExpandSignal(n => n + 1),
   })
 
-  const openInspector = (asset, mode = 'view') => {
+  const openInspector = useCallback((asset, mode = 'view') => {
     setSelectedAssetId(asset.id)
     setPanelMode(mode)
     setSearchParams(prev => {
       const next = new URLSearchParams(prev)
       next.set('id', asset.id)
+      if (mode === 'edit') next.set('mode', 'edit')
+      else next.delete('mode')
       return next
     }, { replace: true })
-  }
+  }, [setSearchParams])
 
   const closeInspector = () => {
     setPanelMode(null)
@@ -140,50 +144,27 @@ export default function AssetRegisterPage() {
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-slate-800 mr-2">Assets</h1>
-
-        <div className="relative flex-1 min-w-48 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search name, ID, serial, location…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={exportCSV}
-          className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-        >
-          <Download size={15} />
-          Export
-        </button>
-
-        {canAdd && (
-          <button
-            type="button"
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <Plus size={15} />
-            Asset
-          </button>
-        )}
-      </div>
-
-      {/* Persistent filters row */}
+      {/* Filters + search (page actions live in the pill bar) */}
       <div ref={filtersRef} className="flex flex-wrap items-end gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1 block">Search</label>
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Name, ID, serial, location…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
         <div className="min-w-36">
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1 block">Category</label>
           <select
@@ -269,7 +250,12 @@ export default function AssetRegisterPage() {
             <AssetTreeTable
               assets={visibleAssets}
               selectedAssetId={selectedAssetId}
-              onSelectAsset={(asset) => openInspector(asset, 'view')}
+              onSelectAsset={(asset, mode = 'view') => openInspector(asset, mode)}
+              onEditAsset={(asset) => openInspector(asset, 'edit')}
+              onQrAsset={(asset) => openInspector(asset, 'qr')}
+              onDecommissionAsset={(asset) => openInspector(asset, 'decommission')}
+              canEdit={canEdit}
+              canDelete={canDelete}
               expandSignal={expandSignal}
             />
           )}

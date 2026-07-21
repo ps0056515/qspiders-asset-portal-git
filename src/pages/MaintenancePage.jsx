@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 import { useCenterFilter } from '../contexts/CenterFilterContext'
 import { CENTERS } from '../lib/mockData'
 import {
-  Search, Plus, X, Check, Wrench, CheckCircle, Save
+  Search, X, Check, Wrench, CheckCircle, Save
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRegisterToolbarActions } from '../components/Layout/SectionPillBar'
@@ -276,6 +277,7 @@ export default function MaintenancePage() {
   const { user } = useAuth()
   const { maintenance } = useData()
   const { selectedCenterId } = useCenterFilter()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -297,6 +299,16 @@ export default function MaintenancePage() {
     focusFilters: () => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }),
     add: openAdd,
   })
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'add' && canAdd) {
+      setPanelMode('add')
+      setSelectedId(null)
+      const next = new URLSearchParams(searchParams)
+      next.delete('mode')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams, canAdd])
 
   const visible = useMemo(() => {
     let list = maintenance
@@ -338,37 +350,26 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-slate-800 mr-2">Maintenance</h1>
-        <div className="relative flex-1 min-w-48 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search asset, ID, issue, vendor…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={14} />
-            </button>
-          )}
-        </div>
-        {canAdd && (
-          <button
-            type="button"
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <Plus size={15} />
-            Log
-          </button>
-        )}
-      </div>
-
       <div ref={filtersRef} className="flex flex-wrap items-end gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1 block">Search</label>
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Asset, ID, issue, vendor…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
         <div className="min-w-40">
           <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1 block">Status</label>
           <select
