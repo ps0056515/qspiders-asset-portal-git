@@ -8,6 +8,9 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+	allowedHosts: [
+		'assets.qspiders.com'
+	], 
     port: 5353,
     strictPort: true,
     proxy: {

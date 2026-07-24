@@ -25,3 +25,4 @@ dist-ssr
 
 # Uploaded asset files
 server/uploads
+ecosystem.config.cjs

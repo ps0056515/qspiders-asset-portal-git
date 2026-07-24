@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import { initDB } from './db.js'
 import assetsRouter from './routes/assets.js'
@@ -9,6 +11,8 @@ import logsRouter from './routes/logs.js'
 import authRouter from './routes/auth.js'
 import scanRouter from './routes/scan.js'
 import uploadsRouter, { UPLOADS_DIR } from './routes/uploads.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 dotenv.config()
 
@@ -39,11 +43,18 @@ app.use('/api/uploads', uploadsRouter)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }))
 
+// Serve built frontend in production
+const distPath = path.join(__dirname, '..', 'dist')
+app.use(express.static(distPath))
+app.use((req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
 // Start server after DB is ready
 initDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`[Server] API running on http://localhost:${PORT}`)
+      console.log([Server] API running on http://localhost:${PORT})
     })
   })
   .catch((err) => {
