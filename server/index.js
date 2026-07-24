@@ -54,7 +54,7 @@ app.use((req, res) => {
 initDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log([Server] API running on http://localhost:${PORT})
+      console.log('[Server] API running on http://localhost:${PORT}')
     })
   })
   .catch((err) => {
