@@ -123,17 +123,32 @@ export async function initDB() {
         purchase_date DATE,
         purchase_value NUMERIC(12,2),
         vendor TEXT,
+        warranty_start DATE,
         warranty_expiry DATE,
         custodian TEXT,
         department TEXT,
         last_verified DATE,
         verified_by TEXT,
         photo_url TEXT,
+        invoice_url TEXT,
+        asset_type TEXT DEFAULT 'common',
+        employee_name TEXT,
+        employee_id TEXT,
         notes TEXT,
         decommission_reason TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
+    `)
+
+    // Migrations for existing DBs
+    await client.query(`
+      ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS warranty_start DATE,
+        ADD COLUMN IF NOT EXISTS invoice_url TEXT,
+        ADD COLUMN IF NOT EXISTS asset_type TEXT DEFAULT 'common',
+        ADD COLUMN IF NOT EXISTS employee_name TEXT,
+        ADD COLUMN IF NOT EXISTS employee_id TEXT
     `)
 
     await client.query(`

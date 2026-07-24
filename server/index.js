@@ -8,6 +8,7 @@ import maintenanceRouter from './routes/maintenance.js'
 import logsRouter from './routes/logs.js'
 import authRouter from './routes/auth.js'
 import scanRouter from './routes/scan.js'
+import uploadsRouter, { UPLOADS_DIR } from './routes/uploads.js'
 
 dotenv.config()
 
@@ -25,7 +26,8 @@ app.use(
     ],
   })
 )
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
+app.use('/uploads', express.static(UPLOADS_DIR))
 
 app.use('/api/assets', assetsRouter)
 app.use('/api/transfers', transfersRouter)
@@ -33,6 +35,7 @@ app.use('/api/maintenance', maintenanceRouter)
 app.use('/api/logs', logsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/scan', scanRouter)
+app.use('/api/uploads', uploadsRouter)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }))
 

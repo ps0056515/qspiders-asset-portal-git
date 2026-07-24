@@ -3,6 +3,35 @@ import { query } from '../db.js'
 
 const router = Router()
 
+const KNOWN_CAT_CODES = {
+  'IT & Electronics': 'IT',
+  Furniture: 'FURN',
+  'HVAC & Electrical': 'HVAC',
+  Infrastructure: 'INFRA',
+  Other: 'OTH',
+}
+
+function categoryCode(category = '') {
+  if (KNOWN_CAT_CODES[category]) return KNOWN_CAT_CODES[category]
+  const cleaned = String(category).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return (cleaned.slice(0, 4) || 'CUST')
+}
+
+async function nextAssetId(centerId, category) {
+  const catCode = categoryCode(category)
+  const prefix = `QS-${centerId}-${catCode}-`
+  const { rows } = await query(
+    `SELECT id FROM assets WHERE id LIKE $1 ORDER BY id DESC LIMIT 1`,
+    [`${prefix}%`]
+  )
+  let nextNum = 1
+  if (rows[0]?.id) {
+    const match = String(rows[0].id).match(/-(\d+)$/)
+    if (match) nextNum = parseInt(match[1], 10) + 1
+  }
+  return `${prefix}${String(nextNum).padStart(4, '0')}`
+}
+
 // GET /api/assets
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +45,7 @@ router.get('/', async (req, res) => {
     if (condition) { params.push(condition);  sql += ` AND condition = $${params.length}` }
     if (search) {
       params.push(`%${search.toLowerCase()}%`)
-      sql += ` AND (LOWER(asset_name) LIKE $${params.length} OR LOWER(id) LIKE $${params.length} OR LOWER(serial_no) LIKE $${params.length} OR LOWER(custodian) LIKE $${params.length} OR LOWER(make_brand) LIKE $${params.length})`
+      sql += ` AND (LOWER(asset_name) LIKE $${params.length} OR LOWER(id) LIKE $${params.length} OR LOWER(serial_no) LIKE $${params.length} OR LOWER(custodian) LIKE $${params.length} OR LOWER(make_brand) LIKE $${params.length} OR LOWER(COALESCE(employee_name,'')) LIKE $${params.length} OR LOWER(COALESCE(employee_id,'')) LIKE $${params.length})`
     }
 
     sql += ' ORDER BY created_at DESC'
@@ -43,33 +72,63 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const a = req.body
-    // Generate ID
-    const catCode = a.category === 'IT & Electronics' ? 'IT'
-      : a.category === 'Furniture' ? 'FURN'
-      : a.category === 'HVAC & Electrical' ? 'HVAC'
-      : a.category === 'Infrastructure' ? 'INFRA' : 'OTH'
-    const { rows: existing } = await query(
-      'SELECT COUNT(*) FROM assets WHERE center_id = $1 AND category = $2',
-      [a.center_id, a.category]
-    )
-    const nextNum = parseInt(existing[0].count) + 1
-    const newId = `QS-${a.center_id}-${catCode}-${String(nextNum).padStart(4, '0')}`
+    if (!a.asset_name?.trim()) return res.status(400).json({ error: 'Asset name is required' })
+    if (!a.category?.trim()) return res.status(400).json({ error: 'Category is required' })
+    if (!a.center_id) return res.status(400).json({ error: 'Center is required' })
+
+    const assetType = a.asset_type === 'employee' ? 'employee' : 'common'
+    if (assetType === 'employee') {
+      if (!a.employee_name?.trim()) return res.status(400).json({ error: 'Employee name is required' })
+      if (!a.employee_id?.trim()) return res.status(400).json({ error: 'Employee ID is required' })
+    }
+
+    const newId = await nextAssetId(a.center_id, a.category)
 
     const { rows: centers } = await query('SELECT name FROM centers WHERE id = $1', [a.center_id])
     const centerName = centers[0]?.name || a.center_id
 
     const { rows } = await query(`
-      INSERT INTO assets (id,asset_name,category,sub_category,make_brand,model_no,serial_no,
-        center_id,center_name,location,quantity,condition,status,purchase_date,purchase_value,
-        vendor,warranty_expiry,custodian,department,last_verified,verified_by,notes)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+      INSERT INTO assets (
+        id, asset_name, category, sub_category, make_brand, model_no, serial_no,
+        center_id, center_name, location, quantity, condition, status,
+        purchase_date, purchase_value, vendor, warranty_start, warranty_expiry,
+        custodian, department, last_verified, verified_by, photo_url, invoice_url,
+        asset_type, employee_name, employee_id, notes
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+        $19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+      )
       RETURNING *
     `, [
-      newId, a.asset_name, a.category, a.sub_category, a.make_brand, a.model_no, a.serial_no,
-      a.center_id, centerName, a.location, a.quantity || 1, a.condition || 'Good',
-      a.status || 'Active', a.purchase_date || null, a.purchase_value || null,
-      a.vendor, a.warranty_expiry || null, a.custodian, a.department,
-      new Date().toISOString().split('T')[0], a.verified_by || a.custodian, a.notes,
+      newId,
+      a.asset_name,
+      a.category,
+      a.sub_category || null,
+      a.make_brand || null,
+      a.model_no || null,
+      a.serial_no || null,
+      a.center_id,
+      centerName,
+      a.location || null,
+      a.quantity || 1,
+      a.condition || 'Good',
+      a.status || 'Active',
+      a.purchase_date || null,
+      a.purchase_value || null,
+      a.vendor || null,
+      a.warranty_start || null,
+      a.warranty_expiry || null,
+      a.custodian || (assetType === 'employee' ? a.employee_name : null),
+      a.department || null,
+      new Date().toISOString().split('T')[0],
+      a.verified_by || a.custodian || a.employee_name || null,
+      a.photo_url || null,
+      a.invoice_url || null,
+      assetType,
+      assetType === 'employee' ? a.employee_name : null,
+      assetType === 'employee' ? a.employee_id : null,
+      a.notes || null,
     ])
 
     await query(
@@ -88,18 +147,31 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const a = req.body
+    const assetType = a.asset_type === 'employee' ? 'employee' : 'common'
+    if (assetType === 'employee') {
+      if (!a.employee_name?.trim()) return res.status(400).json({ error: 'Employee name is required' })
+      if (!a.employee_id?.trim()) return res.status(400).json({ error: 'Employee ID is required' })
+    }
+
     const { rows } = await query(`
       UPDATE assets SET
         asset_name=$1, category=$2, sub_category=$3, make_brand=$4, model_no=$5,
         serial_no=$6, location=$7, quantity=$8, condition=$9, status=$10,
-        purchase_date=$11, purchase_value=$12, vendor=$13, warranty_expiry=$14,
-        custodian=$15, department=$16, notes=$17, updated_at=NOW()
-      WHERE id=$18 RETURNING *
+        purchase_date=$11, purchase_value=$12, vendor=$13, warranty_start=$14,
+        warranty_expiry=$15, custodian=$16, department=$17, notes=$18,
+        photo_url=$19, invoice_url=$20, asset_type=$21, employee_name=$22,
+        employee_id=$23, updated_at=NOW()
+      WHERE id=$24 RETURNING *
     `, [
       a.asset_name, a.category, a.sub_category, a.make_brand, a.model_no,
       a.serial_no, a.location, a.quantity, a.condition, a.status,
-      a.purchase_date || null, a.purchase_value || null, a.vendor, a.warranty_expiry || null,
-      a.custodian, a.department, a.notes, req.params.id,
+      a.purchase_date || null, a.purchase_value || null, a.vendor,
+      a.warranty_start || null, a.warranty_expiry || null,
+      a.custodian, a.department, a.notes,
+      a.photo_url || null, a.invoice_url || null, assetType,
+      assetType === 'employee' ? a.employee_name : null,
+      assetType === 'employee' ? a.employee_id : null,
+      req.params.id,
     ])
 
     if (!rows.length) return res.status(404).json({ error: 'Asset not found' })

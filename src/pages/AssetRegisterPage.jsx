@@ -67,7 +67,9 @@ export default function AssetRegisterPage() {
         a.custodian?.toLowerCase().includes(q) ||
         a.make_brand?.toLowerCase().includes(q) ||
         a.location?.toLowerCase().includes(q) ||
-        a.center_name?.toLowerCase().includes(q)
+        a.center_name?.toLowerCase().includes(q) ||
+        a.employee_name?.toLowerCase().includes(q) ||
+        a.employee_id?.toLowerCase().includes(q)
       )
     }
 
@@ -87,11 +89,13 @@ export default function AssetRegisterPage() {
 
   const exportCSV = useCallback(() => {
     const rows = [
-      ['Asset ID', 'Name', 'Category', 'Sub-category', 'Brand', 'Model', 'Serial No', 'Center', 'Location', 'Qty', 'Condition', 'Status', 'Purchase Date', 'Value (₹)', 'Custodian', 'Last Verified'],
+      ['Asset ID', 'Name', 'Type', 'Employee Name', 'Employee ID', 'Category', 'Sub-category', 'Brand', 'Model', 'Serial No', 'Center', 'Location', 'Qty', 'Condition', 'Status', 'Purchase Date', 'Value (₹)', 'Custodian', 'Warranty Start', 'Warranty Expiry', 'Last Verified'],
       ...visibleAssets.map(a => [
-        a.id, a.asset_name, a.category, a.sub_category, a.make_brand, a.model_no, a.serial_no,
+        a.id, a.asset_name, a.asset_type === 'employee' ? 'Employee' : 'Common',
+        a.employee_name, a.employee_id,
+        a.category, a.sub_category, a.make_brand, a.model_no, a.serial_no,
         a.center_name, a.location, a.quantity, a.condition, a.status,
-        a.purchase_date, a.purchase_value, a.custodian, a.last_verified
+        a.purchase_date, a.purchase_value, a.custodian, a.warranty_start, a.warranty_expiry, a.last_verified
       ])
     ]
     const csv = rows.map(r => r.map(v => `"${v || ''}"`).join(',')).join('\n')
